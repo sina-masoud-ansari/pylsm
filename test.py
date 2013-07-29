@@ -5,6 +5,7 @@ Test the use of Brian to create LSM reservoir and train to reproduce sin wave
 from brian import *
 from ModelSpace import Cuboid3D 
 import math
+import sys
 
 #### Liquid ####
 
@@ -38,7 +39,8 @@ L = NeuronGroup(N, model=eqs_l, threshold=Vt, reset=Vr)
 #### Input ####
 
 # Input Neurons
-I = NeuronGroup(1, model='V : volt')
+I = NeuronGroup(2, model='V : volt')
+
 
 # Neuron parameters (Constant sinewave as input)
 A = 5 * mV 			# amplitude
@@ -50,8 +52,9 @@ w = 2 * math.pi * f
 def updateInput():
 	"""Sine wave"""
 	t = defaultclock.t # (ms)
-	I.V = A * sin(w*t) # (mV)
-
+	for i in range(0, len(I.V)):
+		phi = (float(i) / 7) * 2 * math.pi # phase
+		I.V[i] = A * sin(w*t + phi) # (mV)
 
 #### Monitors ####
 
@@ -62,6 +65,7 @@ M = StateMonitor(I, 'V', record=True)
 run (200 * ms)
 
 plot(M.times / ms, M[0] / mV)
+plot(M.times / ms, M[1] / mV)
 xlabel('Time (ms)')
 ylabel('Voltage (mV)')
 title('Input Neuron Potential')
