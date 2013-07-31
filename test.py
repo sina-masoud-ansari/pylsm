@@ -75,12 +75,12 @@ L_M_gi = StateMonitor(L, 'gi', record=0)
 # Neurons Parameters
 I_tau_m = 20 * ms	# input membrane time constant
 I_V_t = 2.5 * mV	# input spike threshold
-I_V_r = -10 * mV	# input spike reset
+I_V_r = -3 * mV		# input spike reset
 I_V_eq = 1 * mV		# input rest potential
 
 # I_V_j is the injection voltage from the signal source
 I_eqs = Equations("""
-	dV/dt = ( -V + I_V_j) / I_tau_m : volt
+	dV/dt = ( -V + I_V_j + I_V_eq) / I_tau_m : volt
 	I_V_j : volt
 """)
 
@@ -96,13 +96,14 @@ I_mspace = Cuboid3D(I_x, I_y, I_z, offset=I_offset)
 I = NeuronGroup(I_n, model=I_eqs, threshold=I_V_t, reset=I_V_r)
 
 # Assign random initial voltage
-I.V = I_V_r + rand(I_n) * (I_V_t - I_V_r)
+#I.V = I_V_r + rand(I_n) * (I_V_t - I_V_r)
 
 # Input neuron group connections?
 # --currently no connections
 
 # Signal parameters (Constant sinewave as input)
 A = 10 * mV 			# amplitude
+c = 5 * mV				# vertical shift
 f = 40 * hertz			# frequency
 w = 2 * math.pi * f
 
@@ -116,7 +117,7 @@ def updateInput():
 	for i in range(0, len(I.V)):
 		#phi = (float(i) / 7) * 2 * math.pi # phase
 		phi = 0
-		y = A * sin(w*t + phi) # (mV)	
+		y = A * sin(w*t + phi) + c # (mV)	
 		signal_x.append(t)
 		signal_y.append(y)
 		I.I_V_j[i] = y
@@ -137,7 +138,7 @@ signal_y = array(signal_y)
 
 # Plotting
 figure()
-subplots_adjust(hspace=0.5)
+subplots_adjust(hspace=0.8)
 subplots_adjust(wspace=0.5)
 
 ## First Column
