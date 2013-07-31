@@ -11,8 +11,14 @@ import sys
 ### Simulation Parameters
 
 dt = defaultclock.dt # timestep (default is 0.1 ms)
-simtime = 100 * ms 
+simtime = 200 * ms 
 nsteps = simtime / dt
+
+### NOTES ####
+
+# - Input neurons have no internal connections
+# - Input neurons have no random initial voltage
+# - Input neurons have no refractory period
 
 #### Liquid ####
 
@@ -77,6 +83,7 @@ I_tau_m = 20 * ms	# input membrane time constant
 I_V_t = 2.5 * mV	# input spike threshold
 I_V_r = -3 * mV		# input spike reset
 I_V_eq = 1 * mV		# input rest potential
+I_psp = 1.0 * mV	# input neuron post-synaptic potential
 
 # I_V_j is the injection voltage from the signal source
 I_eqs = Equations("""
@@ -98,8 +105,11 @@ I = NeuronGroup(I_n, model=I_eqs, threshold=I_V_t, reset=I_V_r)
 # Assign random initial voltage
 #I.V = I_V_r + rand(I_n) * (I_V_t - I_V_r)
 
-# Input neuron group connections?
-# --currently no connections
+# Input neuron group connections
+# -- currently no interal connections
+# May want to create inhibitory and excitatory currents from input to liquid
+I_C_L = Connection(I, L, 'V', sparseness=0.6, weight=I_psp)
+
 
 # Signal parameters (Constant sinewave as input)
 A = 10 * mV 			# amplitude
@@ -166,6 +176,7 @@ plot(L_M_gi.times / ms, L_M_gi[0] / mV)
 xlabel('Time (ms)')
 ylabel('Currents (mV)')
 title('Liquid Neuron Currents')
+legend(('ge', 'gi'), 'upper right')
 # Neuron voltage
 subplot(324)
 plot(L_M_V.times / ms, L_M_V[0] / mV)
