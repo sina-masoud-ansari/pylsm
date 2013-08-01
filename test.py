@@ -62,6 +62,7 @@ L.V = L_V_r + rand(L_n) * (L_V_t - L_V_r)
 L_C_e = Connection(L_e, L, 'ge', sparseness=0.4, weight=L_w_e)
 L_C_i = Connection(L_i, L, 'gi', sparseness=0.2, weight=L_w_i)
 
+
 # Monitors
 L_M_s = SpikeMonitor(L)
 L_M_V = StateMonitor(L, 'V', record=True)
@@ -174,35 +175,29 @@ O_M_V = StateMonitor(O, 'V', record=True)
 run (simtime)
 
 #### Clean up and misc tasks ####
-signal_xa = array(signal_x)
-signal_ya = array(signal_y)
+x = array(signal_x)
+y = array(signal_y)
 
 #### Learning ####
 
 # Create Liquid state matrix S
-#S = array([x for x in L_M_s])
-#S = matrix.transpose(S)
-for x in L_M_s:
-	print x
-#print S
-sys.exit(0)
+S = transpose(L_M_V.values)
 # match signal input length with state output length
-y = delete(signal_ya, s_[S.shape[0]:], 0)
-# Remove first 50 ms (500 timesteps)
-S = delete(S, s_[:500], 0)
-y = delete(y, s_[:500], 0)
+trim = 500
+y = delete(y, s_[S.shape[0]:], 0)
+# Remove first x ms (trim timesteps)
+S = delete(S, s_[:trim], 0)
+y = delete(y, s_[:trim], 0)
 # Solve linear system
 w = linalg.lstsq(S, y)[0]
 w = w.reshape(w.shape[0], 1)
-#print w.shape, W.shape
 
 # Set the output weights and run again
-O_C_L = w * siemens
+#O_C_L = w * siemens
 signal_x = []
 signal_y = []
-
 #I.I_V_j = delete(I.I_V_j, s_[:], 0)
-I.I_V_j = 0 * mV
+#I.I_V_j = 0 * mV
 run (simtime)
 
 signal_xa = array(signal_x)
@@ -217,7 +212,7 @@ subplots_adjust(wspace=0.5)
 ## First Column (Input Neurons)
 # Input signal
 subplot(331)
-plot(signal_xa / ms, signal_ya / mV)
+plot(x / ms, y / mV)
 xlabel('Time (ms)')
 ylabel('V (mV)')
 title('Input Signal')
