@@ -11,7 +11,7 @@ import sys
 ### Simulation Parameters
 
 dt = defaultclock.dt # timestep (default is 0.1 ms)
-simtime = 200 * ms 
+simtime = 1000 * ms 
 nsteps = simtime / dt
 
 ### NOTES ####
@@ -29,7 +29,7 @@ L_tau_m = 20 * ms	# liquid membrane time constant (R_m * C_m)
 L_tau_e = 5 * ms	# liquid excitatory synaptic time constant
 L_tau_i = 10 * ms	# liquid inhibitory synaptic time constant
 L_V_t = -50 * mV	# liquid spike threshold
-L_V_eq = -49 * mV	# liquid equilibrium potential (I * R_m)
+L_V_eq = -48 * mV	# liquid equilibrium potential (I * R_m)
 L_V_r = -60 * mV	# liquid spike reset
 L_w_e = 0.5 * mV	# excitatory synaptic weight
 L_w_i =  2.0 * mV		# inhibitory synaptic weight
@@ -91,8 +91,8 @@ L_M_gi = StateMonitor(L, 'gi', record=True)
 I_tau_m = 20 * ms	# input membrane time constant
 I_V_t = -50 * mV	# input spike threshold
 I_V_r = -54 * mV		# input spike reset
-I_V_eq = -51 * mV		# input rest potential
-I_psp = 1 * mV	# input neuron post-synaptic potential
+I_V_eq = -49 * mV		# input rest potential
+I_psp = 0.5 * mV	# input neuron post-synaptic potential
 
 # I_V_j is the injection voltage from the signal source
 I_eqs = Equations("""
