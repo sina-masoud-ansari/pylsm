@@ -10,9 +10,9 @@ import sys
 
 ### Simulation Parameters
 
-dt = 10 * ms
+dt = 2 * ms
 defaultclock.dt = dt # default timestep is 0.1 ms
-simtime = 2000 * ms 
+simtime = 1000 * ms 
 nsteps = simtime / dt
 ptrain = 0.7 # percentage of examples to use for training
 
@@ -27,14 +27,14 @@ ptrain = 0.7 # percentage of examples to use for training
 # Neuron parameters
 # http://www.neurdon.com/2011/01/19/neural-modeling-with-python-part-1/
 # http://briansimulator.org/docs/tutorial_2c_the_cuba_network.html
-L_tau_m = 20 * ms	# liquid membrane time constant (R_m * C_m)
-L_tau_e = 5 * ms	# liquid excitatory synaptic time constant
-L_tau_i = 10 * ms	# liquid inhibitory synaptic time constant
-L_V_t = -50 * mV	# liquid spike threshold
-L_V_eq = -51 * mV	# liquid equilibrium potential (I * R_m)
-L_V_r = -60 * mV	# liquid spike reset
-L_w_e = 0.5 * mV	# excitatory synaptic weight
-L_w_i =  2.0 * mV		# inhibitory synaptic weight
+L_tau_m = 80 * ms	# liquid membrane time constant (R_m * C_m)
+L_tau_e = 30 * ms	# liquid excitatory synaptic time constant
+L_tau_i = 20 * ms	# liquid inhibitory synaptic time constant
+L_V_t = 30 * mV	# liquid spike threshold
+L_V_eq = 29 * mV	# liquid equilibrium potential (I * R_m)
+L_V_r = 0 * mV	# liquid spike reset
+L_w_e = 3 * mV	# excitatory synaptic weight
+L_w_i =  3 * mV		# inhibitory synaptic weight
 
 # Neuron equations (LIF)
 L_eqs = Equations("""
@@ -50,7 +50,7 @@ L_eqs = Equations("""
 
 
 # Liquid dimensions
-L_x = 1000	# X dimension
+L_x = 200	# X dimension
 L_y = 1	# Y dimension
 L_z = 1	# Z dimension
 L_n = L_x * L_y * L_z	# Number of Neurons
@@ -59,7 +59,7 @@ L_n_i = L_n - L_n_e		# Number of inhibitory neurons
 L_mspace = Cuboid3D(L_x, L_y, L_z)
 
 # Liquid neuron groups
-L = NeuronGroup(L_n, model=L_eqs, threshold=L_V_t, reset=L_V_r, refractory=0 * ms)
+L = NeuronGroup(L_n, model=L_eqs, threshold=L_V_t, reset=L_V_r, refractory=2 * ms)
 L_e = L.subgroup(L_n_e)	# excitatory neurons
 L_i = L.subgroup(L_n_i) # inhibitory neurons
 
@@ -67,9 +67,8 @@ L_i = L.subgroup(L_n_i) # inhibitory neurons
 L.V = L_V_r + rand(L_n) * (L_V_t - L_V_r)
 
 # Connect Liquid neurons together
-#L_C = Connection(L, L, 'V', sparseness=0.7, weight=5.0*mV)
-L_C_e = Connection(L_e, L, 'ge', sparseness=0.6, weight=L_w_e)
-L_C_i = Connection(L_i, L, 'gi', sparseness=0.3, weight=L_w_i)
+L_C_e = Connection(L_e, L, 'ge', sparseness=0.2, weight=L_w_e)
+L_C_i = Connection(L_i, L, 'gi', sparseness=0.2, weight=L_w_i)
 
 
 # Monitors
@@ -81,18 +80,17 @@ L_M_gi = StateMonitor(L, 'gi', record=True)
 ##### Input ####
 
 # Poisson Source
-#P_psp = 0.5 * mV
-#P = PoissonGroup(1,rates=10*Hz)
+#P_psp = 5.5 * mV
+#P = PoissonGroup(10,rates=10*Hz)
 #Connection(P, L, sparesness=0.2, weight=P_psp)
 #P_M_s = SpikeMonitor(P, record=True)
-#P_M_V = StateMonitor(P, 'V', record=True)
 
 # Neurons Parameters
 I_tau_m = 20 * ms	# input membrane time constant
 I_V_t = -50 * mV	# input spike threshold
 I_V_r = -60 * mV		# input spike reset
 I_V_eq = -51 * mV		# input rest potential
-I_psp = 0.5 * mV	# input neuron post-synaptic potential
+I_psp = 1 * mV	# input neuron post-synaptic potential
 
 # I_V_j is the injection voltage from the signal source
 I_eqs = Equations("""
@@ -101,7 +99,7 @@ I_eqs = Equations("""
 """)
 
 # Input dimensions
-I_x = 20	# X dimension
+I_x = 10	# X dimension
 I_y = 1	# Y dimension
 I_z = 1	# Z dimension
 I_n = I_x * I_y * I_z		# number of input neurons
@@ -133,14 +131,14 @@ signal_y = [] # y values
 def updateInput():
 	"""Sine wave"""
 	t = defaultclock.t # (ms)
-	for i in range(0, len(I.V)):
-		#phi = (float(i) / 7) * 2 * math.pi # phase
-		phi = 0
-		y = A * sin(w*t + phi) + c # (mV)	
-		#y = 2 * mV
-		signal_x.append(t)
-		signal_y.append(y)
-		I.I_V_j[i] = y
+	#phi = (float(i) / 7) * 2 * math.pi # phase
+	phi = 0
+	y = A * sin(w*t + phi) + c # (mV)	
+	#y = 2 * mV
+	signal_x.append(t)
+	signal_y.append(y)
+	I.I_V_j = y
+	#for i in range(0, len(I.V)):
 
 #### Monitors ####
 
@@ -190,8 +188,13 @@ O_M_V = StateMonitor(O, 'V', record=True)
 run (simtime)
 
 #### Clean up and misc tasks ####
+print len(signal_x)
+print len(signal_y)
 x = array(signal_x)
 y = array(signal_y)
+
+#for i in range(0, len(signal_x)):
+#	print (signal_x[i], signal_y[i])
 
 #### Learning ####
 
@@ -205,17 +208,20 @@ for n in  L_M_s.spiketimes:
 #for s in S:
 #	print s
 print "S orig. " + str(S.shape)
+print "y orig. " + str(y.shape)
+print "x orig. " + str(x.shape)
 # match signal input length with state output length
-trim = int(0.3 * nsteps)
+trim = int(0.2 * nsteps)
 y = delete(y, s_[S.shape[0]:], 0)
 x = delete(x, s_[S.shape[0]:], 0)
-print "Y orig. " + str(y.shape)
+print "y clamp. " + str(y.shape)
+print "x clamp. " + str(x.shape)
 # Remove first x ms (trim timesteps)
 S = delete(S, s_[:trim], 0)
 print "S trim. " + str(S.shape)
 y = delete(y, s_[:trim], 0)
 x = delete(x, s_[:trim], 0)
-print "Y train " + str(y.shape)
+print "Y trim " + str(y.shape)
 # Split into training and test sets
 ntrain = S.shape[0] * ptrain
 #ntest = S.shape[0] - ntrain
@@ -233,7 +239,10 @@ print "y_test " + str(y_test.shape)
 print "x_test " + str(x_test.shape)
 
 # Solve linear system
-W_train = linalg.lstsq(S_train, y_train)[0]
+result = linalg.lstsq(S_train, y_train)
+W_train = result[0]
+error = result[1]
+print "Error: " + str(error)
 print "W_train: " + str(W_train.shape)
 #W_train = W_train.reshape(W_train.shape[0], 1)
 
@@ -315,9 +324,8 @@ title('Output Voltage')
 
 # 
 subplot(336)
-#plot(res / mV)
-#plot(x[ntrain:], y[ntrain:] / mV)
-plot(x_test, y_test / mV)
+plot(x_test / ms, y_test / mV)
+plot(x_test / ms, res / mV)
 xlabel('Time (ms)')
 ylabel('Value)')
 title('Learned Output')
