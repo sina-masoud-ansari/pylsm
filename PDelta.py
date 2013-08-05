@@ -40,6 +40,12 @@ class PDelta:
 		else:
 			sp = 1.0
 		return sp
+	
+	def vote(self, x):
+		"""
+		Determine population vote from array x {-1 ,1}
+		"""
+		return np.sum(x)
 
 """
 Unit Tests
@@ -61,12 +67,18 @@ class TestPDelta(unittest.TestCase):
 		y = np.array([1, -1, 1])
 		self.assertEqual(self.pdelta.f(x).all(), y.all())
 
+	def test_vote(self):	
+		"""Test that vote is correct"""
+		x = [-1, 1, -1]
+		self.assertEqual(self.pdelta.vote(x), -1)
+
 	def test_squash(self):	
 		"""Test that squash is correct"""
 		self.pdelta.rho = 2
 		self.assertEqual(self.pdelta.squash(-3.0), -1)
 		self.assertEqual(self.pdelta.squash(3.0), 1)
 		self.assertEqual(self.pdelta.squash(1.0), 0.5)
+
 
 
 
