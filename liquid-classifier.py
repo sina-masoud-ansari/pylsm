@@ -43,10 +43,19 @@ def addNoise(spikes, var):
 	#print spikes[0], shifted[0]
 	return shifted
 
-def train(states, targets, rconn, pdelta):
+def train(states, targets, net):
 	# train each readout to match its target for this given state sequence
-	for i in range(0, len(rconn)):
-		pass
+	for r in range(0, len(net.rconn)):
+		print "training readout" + str(r) + " with target "+str(targets[r])
+		for t in range(0, len(net.rtimes)):
+			time = net.rtimes[t]
+			output = net.rrates[r][t]
+			target = targets[r]
+			print "training for time: "+str(time)	
+			print "output is " + output + ", target is :"+str(target)
+			error = fabs(output - target)
+			print "error is : "+str(error)
+	
 
 # Sim params
 # ---------------------------------------------------
