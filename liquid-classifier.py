@@ -43,19 +43,23 @@ def addNoise(spikes, var):
 	#print spikes[0], shifted[0]
 	return shifted
 
-def train(states, targets, net):
+def train(net, targets):
 	# train each readout to match its target for this given state sequence
-	for r in range(0, len(net.rconn)):
+	for r in range(0, len(rconn)):
 		print "training readout" + str(r) + " with target "+str(targets[r])
+		# for each state
 		for t in range(0, len(net.rtimes)):
 			time = net.rtimes[t]
 			output = net.rrates[r][t]
 			target = targets[r]
 			print "training for time: "+str(time)	
-			print "output is " + output + ", target is :"+str(target)
+			print "output is " + str(output) + ", target is :"+str(target)
 			error = fabs(output - target)
 			print "error is : "+str(error)
-	
+			W = np.transpose(rconn[r].W)
+			if error > pdelta.eps:
+
+			
 
 # Sim params
 # ---------------------------------------------------
@@ -259,7 +263,7 @@ for e in range(0, epochs):
 			subplot(412)
 			raster_plot(M_G, title='Liquid', newfigure=False)
 			# perform training
-			train(net.states, y, rconn, net.pdelta)
+			train(net, y)
 			subplot(413)
 			raster_plot(rmon[0], title='Readout 0', newfigure=False)
 			subplot(414)
