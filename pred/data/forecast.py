@@ -112,6 +112,17 @@ r('''
 ''')
 
 
+# SMAPE after Ahmed et al
+def smape(x, y):
+	m = len(x)
+	sum = 0.0
+	for i in range(0, m):
+		err = sp.absolute(y[i] - x[i]) / ((sp.absolute(y[i]) + sp.absolute(x[i])) / 2.0)
+		sum = sum + err
+	sum = sum / m
+	return sum
+
+
 # Detrend, Deseasonalise and normalise
 def preprocess(x, freq):
 	r_x = robjects.FloatVector(x)
@@ -169,7 +180,8 @@ m3 = M3(sys.argv[1]).get_series()
 series = [x for x in m3 if x.period == "MONTHLY" and x.n > 80]
 selected_index = 0
 print "Found %d timeseries, selected series %d" % (len(series), selected_index)
-selected_series = series[0]
+series_index = 0
+selected_series = series[series_index]
 x = selected_series.data
 
 # detrend, deseasonalise and normalise data
@@ -213,12 +225,8 @@ Oger.utils.enable_washout(Oger.nodes.RidgeRegressionNode,washout)
 flow=Oger.nodes.FreerunFlow([reservoir,readout],freerun_steps=horizon)
 
 # Optimise
-#gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-4,0,.3)}, reservoir:{'leak_rate':sp.arange(0.1,1.5,0.1)}}
-gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-4,0,.3)}}
-#gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-4,0,.3)}, reservoir:{'leak_rate':sp.arange(0.1,1.5,0.1), '_instance':range(5)}}
-#gridsearch_parameters={reservoir:{'leak_rate':sp.arange(0.1,1.5,0.05)}}
-#gridsearch_parameters={reservoir:{'leak_rate':[1.1]}}
-	
+gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-8,1,0.2)}, reservoir:{'spec_radius':sp.arange(0.1,1.5,0.1), 'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
+
 #Instantiate an optimizer
 opt=Oger.evaluation.Optimizer(gridsearch_parameters,Oger.utils.nrmse)
 	
@@ -227,20 +235,45 @@ opt=Oger.evaluation.Optimizer(gridsearch_parameters,Oger.utils.nrmse)
 opt.grid_search([[],train_set],flow,cross_validate_function=Oger.evaluation.n_fold_random, n_folds=n_folds)
 	
 #opt_flow = flow
-opt_flow=opt.get_optimal_flow(verbose=True)
-opt_values=opt.get_minimal_error()
-print opt_values
+opt_flow=opt.get_optimal_flow(verbose=False)
 
 # Train the flow
 opt_flow.train([[], train_set])
 #test = testset[len(test_set)-3][0]
 prediction = opt_flow.execute(train_data)
 adjusted = postprocess(prediction, 12, mean, stdev, decomp)
-print Oger.utils.nrmse(x, adjusted)
+#print Oger.utils.nrmse(x, adjusted)
+#print Oger.utils.rmse(x, adjusted)
+smape_err = smape(x, adjusted)
+#print smape_err
+
+# Print out results
+plist = []
+for n in gridsearch_parameters[readout]:
+	plist.append((readout, n))
+for n in gridsearch_parameters[reservoir]:
+	plist.append((reservoir, n))
+	
+opt_values=opt.get_minimal_error()
+#print opt_values
+#opt_mv = opt.mean_and_var(node_param_list=[(readout, 'ridge_param')])
+#opt_mv = opt.mean_and_var(plist)
+#print opt_mv
+
+header = "SeriesIndex, NRMSE, SMAPE"
+values = [series_index, opt_values[0], smape_err[0]] 
+for n,p in plist:
+	header = header + ", " + p
+	values.append(opt_values[1][n][p])
+print header
+s = "" +  str(values[0])
+for i in range(1, len(values)):
+	s = s + ", %0.3f" % values[i]
+print s
 
 
-pl.plot(x, label='expected')
-pl.plot(adjusted, label='forecast')
-pl.legend(loc='upper right')
-pl.show()
+#pl.plot(x, label='expected')
+#pl.plot(adjusted, label='forecast')
+#pl.legend(loc='upper right')
+#pl.show()
 
