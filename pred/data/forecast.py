@@ -214,7 +214,7 @@ sp.random.shuffle(train_set)
 
 # Create reservoir
 #reservoir=Oger.nodes.LeakyReservoirNode(output_dim=400,leak_rate=0.4,input_scaling=.05,bias_scaling=.2,reset_states=False)
-reservoir=Oger.nodes.LeakyReservoirNode(output_dim=400,leak_rate=0.5,input_scaling=.05,bias_scaling=0.2,reset_states=False)
+reservoir=Oger.nodes.LeakyReservoirNode(reset_states=False)
 
 # Set the readout function
 readout=Oger.nodes.RidgeRegressionNode(ridge_param=0.79432)
@@ -225,52 +225,55 @@ Oger.utils.enable_washout(Oger.nodes.RidgeRegressionNode,washout)
 flow=Oger.nodes.FreerunFlow([reservoir,readout],freerun_steps=horizon)
 
 # Optimise
-gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-8,1,0.2)}, reservoir:{'spec_radius':sp.arange(0.1,1.5,0.1), 'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
+#gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-8,1,0.2)}, reservoir:{'output_dim':sp.arange(100, 1100, 100),'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
+gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-1,1,0.5)}, reservoir:{'output_dim':sp.arange(100, 1100, 500)}}
 
-#Instantiate an optimizer
-opt=Oger.evaluation.Optimizer(gridsearch_parameters,Oger.utils.nrmse)
-	
-#Do the grid search
-#opt.grid_search([[],trainset],flow,cross_validate_function=Oger.evaluation.leave_one_out)
-opt.grid_search([[],train_set],flow,cross_validate_function=Oger.evaluation.n_fold_random, n_folds=n_folds)
-	
-#opt_flow = flow
-opt_flow=opt.get_optimal_flow(verbose=False)
-
-# Train the flow
-opt_flow.train([[], train_set])
-#test = testset[len(test_set)-3][0]
-prediction = opt_flow.execute(train_data)
-adjusted = postprocess(prediction, 12, mean, stdev, decomp)
-#print Oger.utils.nrmse(x, adjusted)
-#print Oger.utils.rmse(x, adjusted)
-smape_err = smape(x, adjusted)
-#print smape_err
-
-# Print out results
+# Store search params
 plist = []
 for n in gridsearch_parameters[readout]:
 	plist.append((readout, n))
 for n in gridsearch_parameters[reservoir]:
 	plist.append((reservoir, n))
 	
-opt_values=opt.get_minimal_error()
-#print opt_values
-#opt_mv = opt.mean_and_var(node_param_list=[(readout, 'ridge_param')])
-#opt_mv = opt.mean_and_var(plist)
-#print opt_mv
+#Instantiate an optimizer
+opt=Oger.evaluation.Optimizer(gridsearch_parameters,Oger.utils.nrmse)
+	
+# Do the grid search n times and print the results
+for i in sp.arange(10):
+	#opt.grid_search([[],trainset],flow,cross_validate_function=Oger.evaluation.leave_one_out)
+	opt.grid_search([[],train_set],flow,cross_validate_function=Oger.evaluation.n_fold_random, n_folds=n_folds, progress=False)
+		
+	#opt_flow = flow
+	opt_flow=opt.get_optimal_flow(verbose=False)
+	
+	# Train the flow
+	opt_flow.train([[], train_set])
+	#test = testset[len(test_set)-3][0]
+	prediction = opt_flow.execute(train_data)
+	adjusted = postprocess(prediction, 12, mean, stdev, decomp)
+	#print Oger.utils.nrmse(x, adjusted)
+	#print Oger.utils.rmse(x, adjusted)
+	smape_err = smape(x, adjusted)
+	#print smape_err
+	
+	opt_values=opt.get_minimal_error()
+	#print opt_values
+	#opt_mv = opt.mean_and_var(node_param_list=[(readout, 'ridge_param')])
+	#opt_mv = opt.mean_and_var(plist)
+	#print opt_mv
+	if (i == 0):
+		header = "SeriesIndex, NRMSE, SMAPE"
+		values = [series_index, opt_values[0], smape_err[0]] 
+		for n,p in plist:
+			header = header + ", " + p
+			values.append(opt_values[1][n][p])
+		print header
 
-header = "SeriesIndex, NRMSE, SMAPE"
-values = [series_index, opt_values[0], smape_err[0]] 
-for n,p in plist:
-	header = header + ", " + p
-	values.append(opt_values[1][n][p])
-print header
-s = "" +  str(values[0])
-for i in range(1, len(values)):
-	s = s + ", %0.3f" % values[i]
-print s
-
+	s = "" +  str(values[0])
+	for i in range(1, len(values)):
+		s = s + ", %0.3f" % values[i]
+	print s
+	
 
 #pl.plot(x, label='expected')
 #pl.plot(adjusted, label='forecast')
