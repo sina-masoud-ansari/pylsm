@@ -178,9 +178,8 @@ def get_samples(x, window, n_samples):
 m3 = M3(sys.argv[1]).get_series()
 # Select long monthly timeseries
 series = [x for x in m3 if x.period == "MONTHLY" and x.n > 80]
-selected_index = 0
-print "Found %d timeseries, selected series %d" % (len(series), selected_index)
-series_index = 0
+series_index = int(sys.argv[2])
+print "Found %d timeseries, selected series %d" % (len(series), series_index)
 selected_series = series[series_index]
 x = selected_series.data
 
@@ -225,8 +224,9 @@ Oger.utils.enable_washout(Oger.nodes.RidgeRegressionNode,washout)
 flow=Oger.nodes.FreerunFlow([reservoir,readout],freerun_steps=horizon)
 
 # Optimise
-#gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-8,1,0.2)}, reservoir:{'output_dim':sp.arange(100, 1100, 100),'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
-gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-1,1,0.5)}, reservoir:{'output_dim':sp.arange(100, 1100, 500)}}
+gridsearch_parameters={readout:{'ridge_param':sp.logspace(-8,1,num=10)}, reservoir:{'output_dim':sp.arange(100, 1100, 100),'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
+# TEST ONLY
+#gridsearch_parameters={readout:{'ridge_param':10**sp.arange(-1,1,0.5)}, reservoir:{'output_dim':sp.arange(100, 300, 100)}}
 
 # Store search params
 plist = []
@@ -262,15 +262,15 @@ for i in sp.arange(10):
 	#opt_mv = opt.mean_and_var(plist)
 	#print opt_mv
 	if (i == 0):
-		header = "SeriesIndex, NRMSE, SMAPE"
-		values = [series_index, opt_values[0], smape_err[0]] 
+		header = "SeriesIndex, ID, NRMSE, SMAPE"
+		values = [series_index, selected_series.id, opt_values[0], smape_err[0]] 
 		for n,p in plist:
 			header = header + ", " + p
 			values.append(opt_values[1][n][p])
 		print header
 
-	s = "" +  str(values[0])
-	for i in range(1, len(values)):
+	s = "" +  str(values[0]) + ", " + values[1]
+	for i in range(2, len(values)):
 		s = s + ", %0.3f" % values[i]
 	print s
 	
