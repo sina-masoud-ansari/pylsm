@@ -216,7 +216,7 @@ readout=Oger.nodes.RidgeRegressionNode()
 Oger.utils.enable_washout(Oger.nodes.RidgeRegressionNode,washout)
 
 # Do the grid search n times and print the results
-for i in sp.arange(5):
+for i in sp.arange(1):
 	
 	# Randomly shuffle train_set for cross validation
 	sp.random.shuffle(train_set)
@@ -276,8 +276,8 @@ for i in sp.arange(5):
 	print s
 	
 
-#pl.plot(x, label='expected')
-#pl.plot(adjusted, label='forecast')
-#pl.legend(loc='upper right')
-#pl.show()
+pl.plot(x, label='expected')
+pl.plot(adjusted, label='forecast')
+pl.legend(loc='upper right')
+pl.show()
 

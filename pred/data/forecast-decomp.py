@@ -125,34 +125,29 @@ def smape(x, y):
 
 # Detrend, Deseasonalise and normalise
 def preprocess(x, freq):
-	r_x = robjects.FloatVector(x)
+	ret = robjects.FloatVector(x)
 	#print(r_x.r_repr())
-	r_ts = r.ts(r_x, f=freq)
+	ret = r.ts(ret, f=freq)
 	#print(r_ts.r_repr())
-	decomp_x = r.decomp(r_ts)
+	decomp_x = r.decomp(ret)
 	#print(decomp_x.r_repr())
-	x_adj = r.adjust(decomp_x, freq)
+	#ret = r.adjust(decomp_x, freq)
 	#print(x_adj.rx())
-	norm_x = r.normalise(x_adj)
-	mean = norm_x.rx('mean')[0]
-	stdev = norm_x.rx('stdev')[0]
-	ret = sp.array(norm_x.rx('x'))[0]
+	ret = r.normalise(ret)
+	mean = ret.rx('mean')[0]
+	stdev = ret.rx('stdev')[0]
+	ret = sp.array(ret.rx('x'))[0]
 	ret = sp.reshape(ret, (len(ret), 1))
-	#print ret
-	
-	#print mean,stdev
-	#ret = robjects.FloatVector(ret[0])
-	#renorm_x = r.undo_normalisation(ret, mean, stdev)
-	#ret = sp.array(renorm_x)
-	#print(ret)
+
 	return (ret, mean, stdev, decomp_x)
 
 def postprocess(x, freq, mean, stdev, decomp_x):
 	r_x = robjects.FloatVector(x)
 	ret = r.undo_normalisation(r_x, mean, stdev)
-	ret = r.undo_adjust(ret, freq, decomp_x)
+	#ret = r.undo_adjust(ret, freq, decomp_x)
 	ret = sp.array(ret)
 	ret = sp.reshape(ret, (len(ret), 1))
+
 	return ret
 
 def get_samples(x, window, n_samples):
@@ -194,7 +189,7 @@ nx, mean, stdev, decomp = preprocess(x, 12)
 horizon = selected_series.nreq  # forecast horizon
 train_size = selected_series.n - horizon
 #train_size = 80 - horizon
-window = int(0.4 * train_size)
+window = int(0.5 * train_size)
 washout = int(0.5 * window)
 n_samples = train_size - window + 1
 print "Forecast horizon: %d, Observations: %d, Window: %d, Washout: %d, Samples: %d" % (horizon, train_size, window, washout, n_samples)
@@ -216,7 +211,7 @@ readout=Oger.nodes.RidgeRegressionNode()
 Oger.utils.enable_washout(Oger.nodes.RidgeRegressionNode,washout)
 
 # Do the grid search n times and print the results
-for i in sp.arange(5):
+for i in sp.arange(1):
 	
 	# Randomly shuffle train_set for cross validation
 	sp.random.shuffle(train_set)
@@ -233,6 +228,7 @@ for i in sp.arange(5):
 	#gridsearch_parameters={readout:{'ridge_param':sp.logspace(-8,1,num=10)}, reservoir:{'output_dim':sp.arange(100, 1100, 100),'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
 	# Medium
 	gridsearch_parameters={readout:{'ridge_param':sp.logspace(-8,1,num=10)}, reservoir:{'leak_rate':sp.logspace(-8, 0, num=10), 'input_scaling':sp.logspace(-8, 0, num=10)}}
+	#gridsearch_parameters={readout:{'ridge_param':sp.logspace(-8,1,num=10)}, reservoir:{'leak_rate':sp.logspace(-8, 0, num=10)}}
 	# Light
 	#gridsearch_parameters={readout:{'ridge_param':sp.logspace(-8,1,num=5)}, reservoir:{'output_dim':[100],'leak_rate':sp.logspace(-8, 0, num=5), 'input_scaling':sp.logspace(-8, 0, num=5)}}
 	# TEST ONLY
@@ -254,7 +250,8 @@ for i in sp.arange(5):
 	
 	# Train the flow
 	opt_flow.train([[], train_set])
-	prediction = opt_flow.execute(train_data)
+	prediction = opt_flow.execute(nx)
+	print prediction.shape
 	adjusted = postprocess(prediction, 12, mean, stdev, decomp)
 	#print Oger.utils.nrmse(x, adjusted)
 	#print Oger.utils.rmse(x, adjusted)
@@ -276,8 +273,8 @@ for i in sp.arange(5):
 	print s
 	
 
-#pl.plot(x, label='expected')
-#pl.plot(adjusted, label='forecast')
-#pl.legend(loc='upper right')
-#pl.show()
+pl.plot(x, label='expected')
+pl.plot(adjusted, label='forecast')
+pl.legend(loc='upper right')
+pl.show()
 
